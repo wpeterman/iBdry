@@ -1,8 +1,9 @@
 ###############################################################
 # Source R code to execute batch analysis of iButtons
-#                                                             
-# Written by Bill Peterman                                    
-# July 2013                                                     
+#
+# Written by Bill Peterman
+# July 2013
+# updated March 2015
 #
 ##############################################################
 
@@ -11,19 +12,19 @@
 
 # Check for, and install necessary R packages
 libs=c("zoo","plyr")
-type=getOption("pkgType")                           
+type=getOption("pkgType")
 CheckInstallPackage <- function(packages, repos="http://cran.r-project.org") {
   installed=as.data.frame(installed.packages())
   for(p in packages) {
-    if(is.na(charmatch(p, installed[,1]))) { 
-      install.packages(p, repos=repos) 
+    if(is.na(charmatch(p, installed[,1]))) {
+      install.packages(p, repos=repos)
     }
   }
-} 
+}
 CheckInstallPackage(packages=libs)
 ###
-INITIAL<-function(initial.state){if(Move.DryDate[1]==1){"Dry"} 
-																 else {"Filled"}
+INITIAL<-function(initial.state){if(Move.DryDate[1]==1){"Dry"}
+                                 else {"Filled"}
 }
 
 
@@ -33,7 +34,7 @@ require(plyr)
 # List all iButton files
 # setwd(FOLDER)
 ibut.files<-list.files(path=FOLDER,pattern = "\\.csv$",full.names=TRUE) # Make list of all files with '.csv' extension
-ibut.names<-list.files(path=FOLDER,pattern = "\\.csv$") 
+ibut.names<-list.files(path=FOLDER,pattern = "\\.csv$")
 Day.O<-as.Date(Day.Out, "%m/%d/%y")
 Day.I<-as.Date(Day.In,"%m/%d/%y")
 ibut.dry_fill<-data.frame()
@@ -60,35 +61,35 @@ for (i in ibut.files){
   IBUTTON.v$var<-Move.var
 
   IBUTTON.v$Dry<-as.numeric(IBUTTON.v$var>=VAR) # Identify dry events with a "1"
-  Move.DryDate<-as.numeric(rollapply(IBUTTON.v$Dry,width=c.Days,FUN=function(x) (sum(x)==c.Days),align="left"))  
+  Move.DryDate<-as.numeric(rollapply(IBUTTON.v$Dry,width=c.Days,FUN=function(x) (sum(x)==c.Days),align="left"))
   VALUES<-rep(x=Move.DryDate[WINDOW],times=c.Days-1)
   Move.DryDate[is.na(Move.DryDate)]<-Move.DryDate[WINDOW]
   Move.DryDate <- append(Move.DryDate,values=VALUES,after=1)
-  
+
   # Identify positions of changes
   Change<-abs(rollapply(Move.DryDate,width=2,FUN=function(x) (diff(x)),align="left"))
   Change[1:(WINDOW-1+c.Days-1)]<-NA # The first values are NA b/c of the moving window analyses used
   SHIFT<-c.Days-1
-#   Total.Changes <-count(Change)$freq[2]
-#   Total.Changes <-1:Total.Changes %% 2
-#   Shift.Change <-ifelse(Total.Changes==1,-SHIFT,SHIFT)
+  #   Total.Changes <-count(Change)$freq[2]
+  #   Total.Changes <-1:Total.Changes %% 2
+  #   Shift.Change <-ifelse(Total.Changes==1,-SHIFT,SHIFT)
   Change.Pos <- (which(Change==1)+1)-SHIFT # Add 1  b/c the actual change point is 1 greater than value
-#   Change.Pos <- Change.Pos + Shift.Change 
+  #   Change.Pos <- Change.Pos + Shift.Change
 
   EVENTS <- length(Change.Pos)
-	Dry_Fill<-data.frame()
+  Dry_Fill<-data.frame()
   initial.state<-INITIAL(Move.DryDate[WINDOW])
   SITE<-NAME<-gsub(".csv","",x=ibut.names[cnt])
   SITE<-cbind(SITE,initial.state)
-  
 
-##############################
- Dry_Fill<- {if(EVENTS==0){
+
+  ##############################
+  Dry_Fill<- {if(EVENTS==0){
 {pdf(paste(PLOTS,NAME,".pdf",sep=""))
  par(mfrow=c(2,1))
  plot(IBUTTON.v$Date,IBUTTON.v$Value,xlab="Date",ylab="Daily variance",main=paste(NAME," assessed using ",METHOD,"; ", c.Days, " consecutive days",sep=""),las=1); abline(h=VAR, lty=2, col='red')
  plot(IBUTTON.v$Date,IBUTTON.v$var,xlab="Date",ylab=paste(WINDOW,"-day ", METHOD, " of daily variance",sep=""),main=paste(NAME," assessed using ",METHOD,"; ", c.Days, " consecutive days",sep=""),las=1); abline(h=VAR, lty=2, col='red')
-  dev.off()
+ dev.off()
 }
 Dry_Fill<-rbind.fill(Dry_Fill,as.data.frame(SITE))
   } else {
@@ -96,28 +97,28 @@ Dry_Fill<-rbind.fill(Dry_Fill,as.data.frame(SITE))
       Event<-as.character(IBUTTON.v$Date[Change.Pos[j]])
       Event.num<-paste("Event",j,sep="")
       SITE<-cbind(SITE,Event)
-      colnames(SITE)[j+2]<-Event.num      
+      colnames(SITE)[j+2]<-Event.num
     }
-    
+
     DATES<-as.list(as.Date(SITE[,c(-1,-2)]))
-    
+
 { pdf(paste(PLOTS,NAME,".pdf",sep=""))
   par(mfrow=c(2,1))
   plot(IBUTTON.v$Date,IBUTTON.v$Value,xlab="Date",ylab="Daily variance",main=paste(NAME," assessed using ",METHOD,"; ", c.Days, " consecutive days",sep=""),las=1);abline(v=DATES);abline(h=VAR, lty=2, col='red')
-  plot(IBUTTON.v$Date,IBUTTON.v$var,xlab="Date",ylab=paste(WINDOW,"-day ", METHOD, " of daily variance",sep=""),main=paste(NAME," assessed using ",METHOD,"; ", c.Days, " consecutive days",sep=""),las=1);abline(v=DATES);abline(h=VAR, lty=2, col='red')  
+  plot(IBUTTON.v$Date,IBUTTON.v$var,xlab="Date",ylab=paste(WINDOW,"-day ", METHOD, " of daily variance",sep=""),main=paste(NAME," assessed using ",METHOD,"; ", c.Days, " consecutive days",sep=""),las=1);abline(v=DATES);abline(h=VAR, lty=2, col='red')
   dev.off()
     }
-    Dry_Fill<-rbind.fill(Dry_Fill,as.data.frame(SITE))
+Dry_Fill<-rbind.fill(Dry_Fill,as.data.frame(SITE))
   }
   }
 ##############################
-  
-  ibut.dry_fill<-rbind.fill(ibut.dry_fill,Dry_Fill)
-  
 
-  Export.File<-paste(OUT.DIR,NAME,".csv",sep="")
-  write.table(x=IBUTTON,Export.File,sep=",",row.names=F,col.names=T)
-    
+ibut.dry_fill<-rbind.fill(ibut.dry_fill,Dry_Fill)
+
+
+Export.File<-paste(OUT.DIR,NAME,".csv",sep="")
+write.table(x=IBUTTON,Export.File,sep=",",row.names=F,col.names=T)
+
 }
 
 CSV.files <- list.files(OUT.DIR,pattern="*.csv",full.names=TRUE)
@@ -130,6 +131,24 @@ for(i in 1:length(CSV.names)){
   CSV <- cbind(iButton,CSV)
   COMBINED[[i]] <- CSV
 }
+
+# Calculate duration of dry-fill event
+EVENTS <- ibut.dry_fill[,c(-1,-2)]
+events <- dim(ibut.dry_fill)[2]-2
+duration.mat <-  matrix(NA,dim(ibut.dry_fill)[1],events)
+colnames(duration.mat)<-paste0("Duration",1:events)
+
+
+duration.mat[,1] <- as.Date(ibut.dry_fill$Event1)-Day.O
+
+for(i in 2:events){
+  duration.mat[,i] <- as.Date(EVENTS[,i]) - as.Date(EVENTS[,i-1])
+}
+
+ibut.dry_fill<- ibut.dry_fill[,c(1,2)]
+ibut.dry_fill$Deploy <- Day.O
+duration.mat <- as.data.frame(duration.mat)
+ibut.dry_fill<- cbind(ibut.dry_fill,EVENTS,duration.mat)
 
 All_iButtons_Combined<-as.data.frame(do.call(rbind,COMBINED))
 write.table(x=ibut.dry_fill,paste(OUT.DIR,"Dry_Fill_Events.csv",sep=""),sep=",",row.names=F,col.names=T)
